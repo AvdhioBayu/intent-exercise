@@ -1,11 +1,17 @@
 package id.ac.polinema.intentexercise;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.mobsandgeeks.saripaar.ValidationError;
@@ -15,15 +21,18 @@ import com.mobsandgeeks.saripaar.annotation.Email;
 import com.mobsandgeeks.saripaar.annotation.NotEmpty;
 import com.mobsandgeeks.saripaar.annotation.Password;
 
+import java.io.IOException;
 import java.util.List;
 
 public class RegisterActivity extends AppCompatActivity implements Validator.ValidationListener {
-    public static final String FULLNAME_KEY ="fullname";
+    public static final String FULLNAME_KEY = "fullname";
     public static final String EMAIL_KEY = "email";
     public static final String PASSWORD_KEY = "password";
-    public static final String CONFIRMPASSWORD_KEY ="confirmpassword";
+    public static final String CONFIRMPASSWORD_KEY = "confirmpassword";
     public static final String HOMEPAGE_KEY = "homepage";
     public static final String ABOUT_KEY = "about";
+    public static final String IMG_KEY = "image";
+
 
     @NotEmpty
     private EditText fullnameInput;
@@ -46,6 +55,11 @@ public class RegisterActivity extends AppCompatActivity implements Validator.Val
     @NotEmpty
     private EditText aboutInput;
 
+    private ImageView avatarImage;
+    private String image;
+
+    private static final int FOTO_REQUEST_CODE = 1;
+
     private Validator validator;
 
     @Override
@@ -53,18 +67,21 @@ public class RegisterActivity extends AppCompatActivity implements Validator.Val
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
-        fullnameInput=findViewById(R.id.text_fullname);
-        emailInput=findViewById(R.id.text_email);
-        passwordInput=findViewById(R.id.text_password);
-        confirmpasswordInput=findViewById(R.id.text_confirm_password);
-        homepageInput=findViewById(R.id.text_homepage);
-        aboutInput=findViewById(R.id.text_about);
+        fullnameInput = findViewById(R.id.text_fullname);
+        emailInput = findViewById(R.id.text_email);
+        passwordInput = findViewById(R.id.text_password);
+        confirmpasswordInput = findViewById(R.id.text_confirm_password);
+        homepageInput = findViewById(R.id.text_homepage);
+        aboutInput = findViewById(R.id.text_about);
+        avatarImage = findViewById(R.id.image_profile);
         validator = new Validator(this);
         validator.setValidationListener(this);
 
     }
 
-    public void handleProfile(View view) {validator.validate();}
+    public void handleProfile(View view) {
+        validator.validate();
+    }
 
     public void onValidationSucceeded() {
         String fullname = fullnameInput.getText().toString();
@@ -81,8 +98,10 @@ public class RegisterActivity extends AppCompatActivity implements Validator.Val
         intent.putExtra(CONFIRMPASSWORD_KEY, confirmpassword);
         intent.putExtra(HOMEPAGE_KEY, homepage);
         intent.putExtra(ABOUT_KEY, about);
+        intent.putExtra(IMG_KEY, image);
         startActivity(intent);
     }
+
     public void onValidationFailed(List<ValidationError> errors) {
         for (ValidationError error : errors) {
             View view = error.getView();
@@ -93,6 +112,32 @@ public class RegisterActivity extends AppCompatActivity implements Validator.Val
                 ((EditText) view).setError(message);
             } else {
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public void handleImage(View view) {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, FOTO_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_CANCELED) {
+            return;
+        }
+
+        if (requestCode == FOTO_REQUEST_CODE) {
+            if (data != null) {
+                try {
+                    image=data.getDataString();
+                    Uri imageUri = data.getData();
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                    avatarImage.setImageBitmap(bitmap);
+                } catch (IOException e) {
+                    Toast.makeText(this, "Can't load image", Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
